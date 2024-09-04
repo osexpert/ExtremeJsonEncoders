@@ -1,0 +1,46 @@
+<Project>
+  <PropertyGroup>
+
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <NoWarn>1701;1702;1591;1573</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+<!--
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\keypair.key</AssemblyOriginatorKeyFile>
+    -->
+    <RepoRootPath>$(MSBuildThisFileDirectory)</RepoRootPath>
+    <PackageOutputPath>$(RepoRootPath)bin\Packages\$(Configuration)\NuGet\</PackageOutputPath>
+
+    <PackageProjectUrl>https://github.com/osexpert/ExtremeJsonEncoders</PackageProjectUrl>
+    <PackageLicenseUrl></PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/osexpert/ExtremeJsonEncoders.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Company>osexpert</Company>      
+    <PackageReleaseNotes>See https://github.com/osexpert/ExtremeJsonEncoders/blob/master/CHANGELOG.md for details</PackageReleaseNotes>
+    
+    <VersionPrefix>0.0.1</VersionPrefix>
+<!--     <PackageTags>Syatem.Text.Json </PackageTags> -->
+    <Description>For System.Text.Json. A MinimalJsonEncoder, that only escape what the RFC require. Also a MaximalJsonEncoder, for fun:-)</Description>        
+		        
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+		              
+<!--
+
+
+    
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols Condition=" '$(DebugType)' != 'embedded' ">true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    
+    -->
+    
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(RepoRootPath)README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+    
+</Project>
