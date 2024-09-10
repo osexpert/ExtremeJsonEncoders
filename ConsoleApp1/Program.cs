@@ -20,14 +20,14 @@ namespace ConsoleApp1
         static int Main(string[] args)
         {
 			Console.OutputEncoding = Encoding.UTF8;
-			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\""));
-			// "abc\u00E6\u00F8\u00E5\uD842\uDF9F\u308B"
-			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
-			// "abcæøå\uD842\uDF9Fる"
-			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared }));
-			// "\u0061\u0062\u0063\u00e6\u00f8\u00e5\ud842\udf9f\u308b"
-			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared }));
-			// "abcæøå𠮟る"
+			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\""));
+			// "\r\n\t\\abc\u00E6\u00F8\u00E5\uD842\uDF9F\u308B\uD801\uDC37\u0022"
+			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+			// "\r\n\t\\abcæøå\uD842\uDF9Fる\uD801\uDC37\""
+			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared }));
+			// "\u000d\u000a\u0009\u005c\u0061\u0062\u0063\u00e6\u00f8\u00e5\ud842\udf9f\u308b\ud801\udc37\u0022"
+			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared }));
+			// "\r\n\t\\abcæøå𠮟る𐐷\""
 
 
 			Dictionary<string, string> data = new Dictionary<string, string>();
