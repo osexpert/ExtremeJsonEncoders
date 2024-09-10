@@ -61,37 +61,15 @@ namespace ExtremeJsonEncoders
                 return false;
             }
 
-			//const int maxCharsPerScalar = 2;
-			//char* utf16Buffer = stackalloc char[maxCharsPerScalar];
-			//int utf16Length = rune.EncodeToUtf16(new Span<char>(utf16Buffer, maxCharsPerScalar));
-			//Span<char> span = new(buffer, bufferLength);
-
-			//rune.IsBmp
-
-			//if (utf16Length > 1)
-			//{
-			//}
-
-			//         for (int index = 0; index < utf16Length; ++index)
-			//         {
-			//             char toEncode = utf16Buffer[index];
-			//             span[0] = '\\';
-			//             span[1] = 'u';
-			//             span[2] = ToHexDigit((toEncode & 0xf000) >> 12);
-			//             span[3] = ToHexDigit((toEncode & 0xf00) >> 8);
-			//             span[4] = ToHexDigit((toEncode & 0xf0) >> 4);
-			//             span[5] = ToHexDigit(toEncode & 0xf);
-			//             span = span.Slice(unicodeEscapeLength);
-			//         }
-
 			Span<char> span = new(buffer, bufferLength);
 
 			if (rune.Utf16SequenceLength == 2)
 			{
 				const int maxCharsPerScalar = 2;
 				char* utf16Buffer = stackalloc char[maxCharsPerScalar];
-				if (rune.EncodeToUtf16(new Span<char>(utf16Buffer, maxCharsPerScalar)) != maxCharsPerScalar)
-					throw new Exception("Not " + maxCharsPerScalar);
+				var numberOfCharsWritten = rune.EncodeToUtf16(new Span<char>(utf16Buffer, maxCharsPerScalar));
+				if (numberOfCharsWritten != maxCharsPerScalar)
+					throw new Exception("Impossible numberOfCharsWritten: " + numberOfCharsWritten);
 
 				char highSurrogate = utf16Buffer[0];
 				char lowSurrogate = utf16Buffer[1];

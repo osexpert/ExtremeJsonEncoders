@@ -47,36 +47,43 @@ namespace ExtremeJsonEncoders
                 return succeeded;
             }
 
-            if (unicodeScalar <= char.MaxValue && HasTwoCharacterEscape((char)unicodeScalar, out var suffix))// unicodeScalar == '"' || unicodeScalar == '\\')
-            {
-				if (bufferLength < 2)
+			if (unicodeScalar <= char.MaxValue)
+			{
+				char unicodeChar = (char)unicodeScalar;
+
+				if (HasTwoCharacterEscape(unicodeChar, out var suffix))
 				{
-					numberOfCharactersWritten = 0;
-					return false;
+					if (bufferLength < 2)
+					{
+						numberOfCharactersWritten = 0;
+						return false;
+					}
+
+					buffer[0] = '\\';
+					buffer[1] = suffix;
+					numberOfCharactersWritten = 2;
+					return true;
 				}
+				else
+				{
+					if (bufferLength < 6)
+					{
+						numberOfCharactersWritten = 0;
+						return false;
+					}
 
-				buffer[0] = '\\';
-                buffer[1] = suffix;
-                numberOfCharactersWritten = 2;
-                return true;
-            }
-            else
-            {
-                if (bufferLength < 6)
-                {
-                    numberOfCharactersWritten = 0;
-                    return false;
-                }
-
-                buffer[0] = '\\';
-                buffer[1] = 'u';
-                buffer[2] = '0';
-                buffer[3] = '0';
-                buffer[4] = ToHexDigit((unicodeScalar & 0xf0) >> 4);
-                buffer[5] = ToHexDigit(unicodeScalar & 0xf);
-                numberOfCharactersWritten = 6;
-                return true;
-            }
+					buffer[0] = '\\';
+					buffer[1] = 'u';
+					buffer[2] = '0';
+					buffer[3] = '0';
+					buffer[4] = ToHexDigit((unicodeChar & 0xf0) >> 4);
+					buffer[5] = ToHexDigit(unicodeChar & 0xf);
+					numberOfCharactersWritten = 6;
+					return true;
+				}
+			}
+			else
+				throw new Exception("impossible: unicodeScalar > char.MaxValue");
         }
 
 		private bool HasTwoCharacterEscape(char value, out char suffix)
