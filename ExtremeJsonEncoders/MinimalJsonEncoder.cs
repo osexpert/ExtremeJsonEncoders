@@ -25,7 +25,7 @@ namespace ExtremeJsonEncoders
             {
                 char value = text[index];
 
-                if (NeedsEncoding(value))
+                if (MustBeEscaped(value))
                 {
                     return index;
                 }
@@ -37,27 +37,26 @@ namespace ExtremeJsonEncoders
         public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength,
             out int numberOfCharactersWritten)
         {
-            bool encode = WillEncode(unicodeScalar);
+			bool escape = WillEncode(unicodeScalar);
 
-            if (!encode)
+            if (!escape)
             {
-                Span<char> span = new Span<char>(buffer, bufferLength);
-                int spanWritten;
-                bool succeeded = new Rune(unicodeScalar).TryEncodeToUtf16(span, out spanWritten);
-                numberOfCharactersWritten = spanWritten;
+                Span<char> span = new(buffer, bufferLength);
+				bool succeeded = new Rune(unicodeScalar).TryEncodeToUtf16(span, out int spanWritten);
+				numberOfCharactersWritten = spanWritten;
                 return succeeded;
             }
 
-            if (unicodeScalar == '"' || unicodeScalar == '\\')
+            if (unicodeScalar <= char.MaxValue && HasTwoCharacterEscape((char)unicodeScalar, out var suffix))// unicodeScalar == '"' || unicodeScalar == '\\')
             {
-                if (bufferLength < 2)
-                {
-                    numberOfCharactersWritten = 0;
-                    return false;
-                }
+				if (bufferLength < 2)
+				{
+					numberOfCharactersWritten = 0;
+					return false;
+				}
 
-                buffer[0] = '\\';
-                buffer[1] = (char)unicodeScalar;
+				buffer[0] = '\\';
+                buffer[1] = suffix;
                 numberOfCharactersWritten = 2;
                 return true;
             }
@@ -80,28 +79,58 @@ namespace ExtremeJsonEncoders
             }
         }
 
-        public override bool WillEncode(int unicodeScalar)
+		private bool HasTwoCharacterEscape(char value, out char suffix)
+		{
+			// RFC 8259, Section 7, "char = " BNF
+			switch (value)
+			{
+				case '"':
+					suffix = '"';
+					return true;
+				case '\\':
+					suffix = '\\';
+					return true;
+				case '/':
+					suffix = '/';
+					return true;
+				case '\b':
+					suffix = 'b';
+					return true;
+				case '\f':
+					suffix = 'f';
+					return true;
+				case '\n':
+					suffix = 'n';
+					return true;
+				case '\r':
+					suffix = 'r';
+					return true;
+				case '\t':
+					suffix = 't';
+					return true;
+				default:
+					suffix = '\0';
+					return false;
+			}
+		}
+
+		public override bool WillEncode(int unicodeScalar)
         {
             if (unicodeScalar > char.MaxValue)
             {
                 return false;
             }
 
-            return NeedsEncoding((char)unicodeScalar);
+            return MustBeEscaped((char)unicodeScalar);
         }
 
-        // https://datatracker.ietf.org/doc/html/rfc8259#section-7
-        static bool NeedsEncoding(char value)
+        static bool MustBeEscaped(char value)
         {
-            if (value == '"' || value == '\\')
-            {
-                return true;
-            }
-
-            return value <= '\u001f';
+			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
+			return value == '"' || value == '\\' || value <= '\u001f';
         }
 
-        static char ToHexDigit(int value)
+		static char ToHexDigit(int value)
         {
             if (value > 0xf)
             {
@@ -118,6 +147,4 @@ namespace ExtremeJsonEncoders
             }
         }
     }
-
- 
 }

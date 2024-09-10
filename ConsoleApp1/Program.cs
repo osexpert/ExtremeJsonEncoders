@@ -19,9 +19,18 @@ namespace ConsoleApp1
     {
         static int Main(string[] args)
         {
-            Console.OutputEncoding = Encoding.UTF8;
+			Console.OutputEncoding = Encoding.UTF8;
+			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\""));
+			// "abc\u00E6\u00F8\u00E5\uD842\uDF9F\u308B"
+			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+			// "abcæøå\uD842\uDF9Fる"
+			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared }));
+			// "\u0061\u0062\u0063\u00e6\u00f8\u00e5\ud842\udf9f\u308b"
+			Console.WriteLine(JsonSerializer.Serialize("abcæøå𠮟る\"", new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared }));
+			// "abcæøå𠮟る"
 
-            Dictionary<string, string> data = new Dictionary<string, string>();
+
+			Dictionary<string, string> data = new Dictionary<string, string>();
             data.Add("text", "Hello, World!");
 
             string actual = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = new MaximalJsonEncoder() });
@@ -31,6 +40,7 @@ namespace ConsoleApp1
             if (actual != max)
                 throw new Exception();
 
+			
             return 0;
         }
 

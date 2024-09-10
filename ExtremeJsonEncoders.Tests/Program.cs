@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Text.Json;
 using System.Text.Encodings.Web;
+using Microsoft.Testing.Platform.Extensions.Messages;
 
 
 namespace ExtremeJsonEncoders.Tests
@@ -122,6 +123,69 @@ namespace ExtremeJsonEncoders.Tests
 			const string max = "{\"\\u0074\\u0065\\u0078\\u0074\":\"\\u0048\\u0065\\u006c\\u006c\\u006f\\u002c\\u0020\\u0057\\u006f\\u0072\\u006c\\u0064\\u0021\"}";
 
 			Assert.AreEqual(max, actual);
+		}
+
+		[TestMethod]
+		public void TestMinNewlineTabEtc()
+		{
+			const string str = "æøå\n\r\t\b\\/\f";
+
+			string actual = JsonSerializer.Serialize(str, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+
+			const string min = "\"æøå\\n\\r\\t\\b\\\\/\\f\"";
+
+			Assert.AreEqual(min, actual);
+
+			var back = JsonSerializer.Deserialize<string>(actual);
+			Assert.AreEqual(str, back);
+		}
+
+		[TestMethod]
+		public void TestMaxNewlineTabEtc()
+		{
+			const string str = "æøå\n\r\t\b\\/\f";
+
+			string actual = JsonSerializer.Serialize(str, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+
+			const string max = "\"\\u00e6\\u00f8\\u00e5\\u000a\\u000d\\u0009\\u0008\\u005c\\u002f\\u000c\"";
+
+			Assert.AreEqual(max, actual);
+
+			var back = JsonSerializer.Deserialize<string>(actual);
+			Assert.AreEqual(str, back);
+		}
+
+		[TestMethod]
+		public void SurrogatePairMin()
+		{
+			const string s = "U+10437 (𐐷) to UTF-16: ";
+			string json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			const string res = "\"U+10437 (𐐷) to UTF-16: \"";
+			Assert.AreEqual(res, json);
+			var back = JsonSerializer.Deserialize<string>(json);
+			Assert.AreEqual(s, back);
+		}
+
+		[TestMethod]
+		public void SurrogatePairMax()
+		{
+			const string s = "U+10437 (𐐷) to UTF-16: ";
+			string json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			const string res = "\"\\u0055\\u002b\\u0031\\u0030\\u0034\\u0033\\u0037\\u0020\\u0028\\ud801\\udc37\\u0029\\u0020\\u0074\\u006f\\u0020\\u0055\\u0054\\u0046\\u002d\\u0031\\u0036\\u003a\\u0020\"";
+			Assert.AreEqual(res, json);
+			var back = JsonSerializer.Deserialize<string>(json);
+			Assert.AreEqual(s, back);
+		}
+
+		[TestMethod]
+		public void SurrogatePairMaxAlone()
+		{
+			const string s = "𐐷";
+			string json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			const string res = "\"\\ud801\\udc37\"";
+			Assert.AreEqual(res, json);
+			var back = JsonSerializer.Deserialize<string>(json);
+			Assert.AreEqual(s, back);
 		}
 	}
 }

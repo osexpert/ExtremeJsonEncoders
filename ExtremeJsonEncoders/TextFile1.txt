@@ -1,0 +1,6 @@
+﻿Stuff:
+
+https://github.com/dotnet/runtime/blob/ccdcf90c483dd0724878eb555fad2a19a71935f8/src/libraries/System.Text.Encodings.Web/src/System/Text/Encodings/Web/DefaultJavaScriptEncoder.cs#L39
+
+[API Proposal]: JsonEncoder (rather than JavaScriptEncoder)
+https://github.com/dotnet/runtime/issues/86810
