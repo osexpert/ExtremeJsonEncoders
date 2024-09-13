@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text;
 using ExtremeJsonEncoders;
+using System.Diagnostics;
 
 namespace ConsoleApp1
 {
@@ -19,7 +20,91 @@ namespace ConsoleApp1
     {
         static int Main(string[] args)
         {
+			//StringBuilder sb2 = new();
+			//char? prev = null;
+			//for (int i = 0; i <= char.MaxValue; i++)
+			//{
+			//	char c = (char)i;
+			//	if (char.IsSurrogate(c))
+			//	{
+			//		sb2.Append(c);
+
+			//		if (c == prev + 1)
+			//		{
+			//			//Console.WriteLine($"...");
+			//		}
+			//		else
+			//		{
+			//			Console.WriteLine($"Surrogate: {(int)c:x}");
+			//		}
+
+
+			//		prev = c;
+			//	}
+			//}
+
+			//Console.WriteLine($"Surrogate: {(int)prev!.Value:x}");
+
+			//		Surrogate: d800
+			//      Surrogate: dfff
+
+			//		https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+			//		https://github.com/bits/UTF-8-Unicode-Test-Documents/blob/master/UTF-8_sequence_unseparated/utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt
+			//
+			//@"d:\UTF-8-test.txt"
+			var txt = File.ReadAllText(@"d:\ascii test.txt", Encoding.UTF8);// d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt", Encoding.UTF8);//
+
+
+//			StringBuilder sb = new();
+
+	//		string gg = "\u323AF";
+
+
 			Console.OutputEncoding = Encoding.UTF8;
+			var s = new Stopwatch();
+
+			s.Start();
+			for (int i = 0; i < 100; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt);
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("" + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 100; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("" + s.ElapsedMilliseconds);
+
+			s.Restart();
+			//for (int i = 0; i < 100; i++)
+			//{
+			//	var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			//	if (JsonSerializer.Deserialize<string>(serr) != txt)
+			//		throw new Exception();
+			//}
+			s.Stop();
+			Console.WriteLine("" + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 100; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("" + s.ElapsedMilliseconds);
+
+			return 0;
+
 			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\""));
 			// "\r\n\t\\abc\u00E6\u00F8\u00E5\uD842\uDF9F\u308B\uD801\uDC37\u0022"
 			Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
@@ -33,7 +118,7 @@ namespace ConsoleApp1
 			Dictionary<string, string> data = new Dictionary<string, string>();
             data.Add("text", "Hello, World!");
 
-            string actual = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = new MaximalJsonEncoder() });
+            string actual = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
             Console.WriteLine(actual);
 
             const string max = "{\"\\u0074\\u0065\\u0078\\u0074\":\"\\u0048\\u0065\\u006c\\u006c\\u006f\\u002c\\u0020\\u0057\\u006f\\u0072\\u006c\\u0064\\u0021\"}";

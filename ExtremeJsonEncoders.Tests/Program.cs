@@ -10,6 +10,7 @@ using System.Text.Encodings.Web;
 using Microsoft.Testing.Platform.Extensions.Messages;
 
 
+
 namespace ExtremeJsonEncoders.Tests
 {
 	[TestClass]
@@ -44,7 +45,7 @@ namespace ExtremeJsonEncoders.Tests
 			{
 				Encoder =
 							  MinimalJsonEncoder.Shared
-							  //JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+				//JavaScriptEncoder.UnsafeRelaxedJsonEscaping
 			});
 
 			Assert.AreEqual(expected, actual);
@@ -80,7 +81,7 @@ namespace ExtremeJsonEncoders.Tests
 			string actual = JsonSerializer.Serialize(test, new JsonSerializerOptions
 			{
 				Encoder =
-							  new MinimalJsonEncoder()
+							  MinimalJsonEncoder.Shared
 				//JavaScriptEncoder.UnsafeRelaxedJsonEscaping
 			});
 
@@ -118,7 +119,7 @@ namespace ExtremeJsonEncoders.Tests
 			Dictionary<string, string> data = new Dictionary<string, string>();
 			data.Add("text", "Hello, World!");
 
-			string actual = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = new MaximalJsonEncoder() });
+			string actual = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
 
 			const string max = "{\"\\u0074\\u0065\\u0078\\u0074\":\"\\u0048\\u0065\\u006c\\u006c\\u006f\\u002c\\u0020\\u0057\\u006f\\u0072\\u006c\\u0064\\u0021\"}";
 
@@ -186,6 +187,159 @@ namespace ExtremeJsonEncoders.Tests
 			Assert.AreEqual(res, json);
 			var back = JsonSerializer.Deserialize<string>(json);
 			Assert.AreEqual(s, back);
+		}
+
+		[TestMethod]
+		public void BrokenSurrogat_OnlyLow()
+		{
+			//[9]: 55297 '\ud801'
+			//[10]: 56375 '\udc37'
+			const string s = "\ud801";
+			string json = JsonSerializer.Serialize(s, new JsonSerializerOptions());
+			const string res = "\"\\uFFFD\""; // replacement char
+			Assert.AreEqual(res, json);
+			var back = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back);
+
+			//const string s = "\ud801";
+			string json2 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+			//const string res = "\"\\ud801\\udc37\"";
+			Assert.AreEqual(res, json2);
+			var back2 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back2);
+
+			//const string s = "\ud801";
+			string json3 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			const string resLower = "\"\\ufffd\"";
+			Assert.AreEqual(resLower, json3);
+			var back3 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back3);
+
+			//const string s = "\ud801";
+			string json4 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			const string resReal = "\"\ufffd\""; // real unescaped replacement char
+			Assert.AreEqual(resReal, json4);
+			var back4 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back4);
+
+		}
+
+		[TestMethod]
+		public void BrokenSurrogat_OnlyHigh()
+		{
+			//[9]: 55297 '\ud801'
+			//[10]: 56375 '\udc37'
+			const string s = "\udc37";
+			string json = JsonSerializer.Serialize(s, new JsonSerializerOptions());
+			const string res = "\"\\uFFFD\""; // replacement char
+			Assert.AreEqual(res, json);
+			var back = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back);
+
+			//const string s = "\ud801";
+			string json2 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+			//const string res = "\"\\ud801\\udc37\"";
+			Assert.AreEqual(res, json2);
+			var back2 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back2);
+
+			const string resLower = "\"\\ufffd\"";
+
+			//const string s = "\ud801";
+			string json3 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			//const string res = "\"\\ud801\\udc37\"";
+			Assert.AreEqual(resLower, json3);
+			var back3 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back3);
+
+			//const string s = "\ud801";
+			string json4 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			const string resReal = "\"\ufffd\""; // real unescaped replacement char
+			Assert.AreEqual(resReal, json4);
+			var back4 = JsonSerializer.Deserialize<string>(json);
+			Assert.AreNotEqual(s, back4);
+
+		}
+
+		[TestMethod]
+		public void TestMinSlash()
+		{
+			const string str = "/";
+
+			string actual = JsonSerializer.Serialize(str, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+
+			const string min = "\"/\"";
+
+			Assert.AreEqual(min, actual);
+
+			var back = JsonSerializer.Deserialize<string>(actual);
+			Assert.AreEqual(str, back);
+		}
+
+
+		[TestMethod]
+		public void InvalidChar()
+		{
+			for (int i = 0; i <= char.MaxValue; i++)
+			{
+				char c = (char)i;
+				string s = new string(c, 1);
+				string json = JsonSerializer.Serialize(s, new JsonSerializerOptions());
+
+				const string rep = "\"\\uFFFD\""; // replacement char
+				const string repReal = "\ufffd"; // real unescaped replacement char
+
+													 //				Assert.AreEqual(res, json);
+				var back = JsonSerializer.Deserialize<string>(json);
+				if (char.IsSurrogate(c))
+				{
+					Assert.AreEqual(repReal, back);
+				}
+				else
+				{
+					Assert.AreEqual(s, back);
+				}
+
+				json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+	//			Assert.AreEqual(res, json2);
+				back = JsonSerializer.Deserialize<string>(json);
+				if (char.IsSurrogate(c))
+				{
+					Assert.AreEqual(repReal, back);
+				}
+				else
+				{
+					Assert.AreEqual(s, back);
+				}
+
+				json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+				const string repLower = "\"\\ufffd\"";
+			//	Assert.AreEqual(resLower, json3);
+				back = JsonSerializer.Deserialize<string>(json);
+				if (char.IsSurrogate(c))
+				{
+					Assert.AreEqual(repReal, back);
+				}
+				else
+				{
+					Assert.AreEqual(s, back);
+				}
+
+				json = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+				
+	//			Assert.AreEqual(resReal, json4);
+				back = JsonSerializer.Deserialize<string>(json);
+				
+				if (char.IsSurrogate(c))
+				{
+					Assert.AreEqual(repReal, back);
+				}
+				else
+				{
+					Assert.AreEqual(s, back);
+				}
+			}
+
 		}
 	}
 }
