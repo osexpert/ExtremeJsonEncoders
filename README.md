@@ -13,8 +13,9 @@ Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new
 // "\r\n\t\\abcæøå𠮟る𐐷\""
 ```
 
-Warning: even thou MinimalJsonEncoder produces the smallest json, it is approx 4 times slower than UnsafeRelaxedJsonEscaping (heavily optimized).
-So its probably best to use UnsafeRelaxedJsonEscaping unless there is specific requirement for minimally escaped json.
+Performance (since 0.0.3):
+When there is a lot of ascci and little need to escape, MinimalJsonEncoder is comparable to UnsafeRelaxedJsonEscaping.
+When a lot of non-ascii, MinimalJsonEncoder can use 1/2 the time of UnsafeRelaxedJsonEscaping and 1/3 of the time of default encoder.
 
 References:
 * UnsafeRelaxedJsonEscaping escapes too much #86463: https://github.com/dotnet/runtime/issues/86463
