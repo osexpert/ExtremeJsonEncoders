@@ -32,7 +32,11 @@ namespace ExtremeJsonEncoders
 				int encodedCharCount;
 
 				Rune rune = new Rune(i); // guaranteed to succeed
-				if (!Rune.IsControl(rune) && allowedCodePointsBmp.IsCharAllowed((char)i))
+										 //if (!Rune.IsControl(rune) && allowedCodePointsBmp.IsCharAllowed((char)i))
+										 // The IsControl incorrectly (in out case) escapes eg. DEL / 0x7f. Take full control and only use IsCharAllowed.
+										 // PS: this is only a theroretical problem that would only happen if FindFirstCharacterToEncode returned 0 on a DEL / 0x7f,
+										 // but even so: right should be right
+				if (allowedCodePointsBmp.IsCharAllowed((char)i))
 				{
 					thisPreescapedData = (uint)i; // char maps to itself
 					encodedCharCount = 1;

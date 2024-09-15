@@ -318,7 +318,7 @@ namespace ExtremeJsonEncoders
 		private void _AssertThisNotNull()
 		{
 			// Used for hoisting "'this' is not null" assertions outside hot loops.
-			if (GetType() == typeof(OptimizedInboxTextEncoder)) { /* intentionally left blank */ }
+			if (GetType() == typeof(MaximalJsonEncoder)) { /* intentionally left blank */ }
 		}
 	}
 }

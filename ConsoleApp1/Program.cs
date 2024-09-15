@@ -51,57 +51,87 @@ namespace ConsoleApp1
 			//		https://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
 			//		https://github.com/bits/UTF-8-Unicode-Test-Documents/blob/master/UTF-8_sequence_unseparated/utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt
 			//
-			//@"d:\UTF-8-test.txt"
-			var txt = File.ReadAllText(@"d:\ascii test.txt", Encoding.UTF8);// d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt", Encoding.UTF8);//
+			//
+			//@"d:\ascii test.txt"
+			//			@"d:\UTF-8-test.txt"
+			//@"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt"
+			//@"d:\ascii test separated by non.txt"
+			var txt = File.ReadAllText(@"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt"
+				,
+				Encoding.UTF8);// d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt", Encoding.UTF8);//
 
 
-//			StringBuilder sb = new();
+			//			StringBuilder sb = new();
 
-	//		string gg = "\u323AF";
+			//		string gg = "\u323AF";
 
+			var warm1 = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			var warm2 = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
 			Console.OutputEncoding = Encoding.UTF8;
 			var s = new Stopwatch();
 
-			s.Start();
-			for (int i = 0; i < 100; i++)
-			{
-				var serr = JsonSerializer.Serialize(txt);
-				if (JsonSerializer.Deserialize<string>(serr) != txt)
-					throw new Exception();
-			}
-			s.Stop();
-			Console.WriteLine("" + s.ElapsedMilliseconds);
 
 			s.Restart();
-			for (int i = 0; i < 100; i++)
-			{
-				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-				if (JsonSerializer.Deserialize<string>(serr) != txt)
-					throw new Exception();
-			}
-			s.Stop();
-			Console.WriteLine("" + s.ElapsedMilliseconds);
-
-			s.Restart();
-			//for (int i = 0; i < 100; i++)
-			//{
-			//	var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
-			//	if (JsonSerializer.Deserialize<string>(serr) != txt)
-			//		throw new Exception();
-			//}
-			s.Stop();
-			Console.WriteLine("" + s.ElapsedMilliseconds);
-
-			s.Restart();
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 1000; i++)
 			{
 				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
 				if (JsonSerializer.Deserialize<string>(serr) != txt)
 					throw new Exception();
 			}
 			s.Stop();
-			Console.WriteLine("" + s.ElapsedMilliseconds);
+			Console.WriteLine("min " + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 1000; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt);
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("std " + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 1000; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("unrelx " + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 1000; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("min " + s.ElapsedMilliseconds);
+
+			s.Restart();
+			for (int i = 0; i < 1000; i++)
+			{
+				var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+				if (JsonSerializer.Deserialize<string>(serr) != txt)
+					throw new Exception();
+			}
+			s.Stop();
+			Console.WriteLine("unrelx " + s.ElapsedMilliseconds);
+
+			//s.Restart();
+			//for (int i = 0; i < 100; i++)
+			//{
+			//	var serr = JsonSerializer.Serialize(txt, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			//	if (JsonSerializer.Deserialize<string>(serr) != txt)
+			//		throw new Exception();
+			//}
+			//s.Stop();
+			//Console.WriteLine("max " + s.ElapsedMilliseconds);
+
 
 			return 0;
 

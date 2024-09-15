@@ -274,19 +274,12 @@ namespace ExtremeJsonEncoders
 		}
 
 
-#if false //NET8_0_OR_GREATER
-// This gains a little, but too little IMO. So not worh it right now.
+#if NET8_0_OR_GREATER
+		//static SearchValues<char> _sv_need_encoding = SearchValues.Create(GetSearchValues());
+		static SearchValues<char> _sv_ascii_ok_subset = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		//GetSearchValuesAllowedAsciiSubset());
 
-		public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
-        {
-			var sp = new Span<char>(text, textLength);
-			var i = sp.IndexOfAny(_sv_need_encoding);
-			return i;
-		}
-
-		static SearchValues<char> _sv_need_encoding = SearchValues.Create(GetSearchValues());
-
-		static string GetSearchValues()
+		static string GetSearchValuesDisallowed()
 		{
 			StringBuilder sb = new();
 
@@ -303,42 +296,95 @@ namespace ExtremeJsonEncoders
 
 			return sb.ToString();
 		}
-#else
+
+		static string GetSearchValuesAllowedAsciiSubset()
+		{
+			StringBuilder sb = new();
+
+			// 0x20 is above control chars
+			// 0x7f is DEL? include it?
+			for (int i = 0x20; i < 0x7f; i++)
+			{
+				if (i == '"' || i == '\\')
+				{
+				}
+				else
+				{
+					sb.Append((char)i);
+				}
+			}
+
+			return sb.ToString();
+		}
+#endif
+
 		public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
         {
-			//for (int index = 0; index < textLength; ++index)
-			//         {
-			//             char value = text[index];
+			// To test the encoder fully, return 0 here to force encoding everything.
+			//return 0;
 
-			//             if (MustBeEscaped(value))
-			//             {
-			//                 return index;
-			//             }
-			//         }
+#if NET8_0_OR_GREATER
+			// this is not all that are ok (far from), but the most common that are ok.
+			// so if we are lucky, we can skip a lot of valid ascii that we don't need to encode, and we skip it faster with SearchValues
+			var sp = new Span<char>(text, textLength);
+			var i = sp.IndexOfAnyExcept(_sv_ascii_ok_subset);
+#else
+			var i = 0;
+#endif
 
-			//         return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
-
-			// So...we need to detect invalid unicode here...so we can handle it here (replacement char). Whoever calls us just silently skip invalid unicode chars if we say -1 (all allowed).
-			// This means...we need to do just as much work here as in the encoding itself!! SO...then just always do the encoding?
-			// It make sense, for performance (simd) to do it here, but since we just use a simple loop here anyways, it wont matter much.
-			// We could have allowed 0 - FFFF thou...
-
-			//	return 0; works, but slower?
-
-			for (int index = 0; index < textLength; ++index)
+			if (i >= 0)
 			{
-				char value = text[index];
-
-				// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
-				if (MustBeEscaped(value) || char.IsSurrogate(value))
+				// continue with slower logic
+				for (int index = i; index < textLength; ++index)
 				{
-					return index;
+					char value = text[index];
+
+					// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
+					if (MustBeEscaped(value) || char.IsSurrogate(value))
+					{
+						return index;
+					}
 				}
 			}
 
 			return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
 		}
-#endif
+
+		//public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
+  //      {
+		//	//for (int index = 0; index < textLength; ++index)
+		//	//         {
+		//	//             char value = text[index];
+
+		//	//             if (MustBeEscaped(value))
+		//	//             {
+		//	//                 return index;
+		//	//             }
+		//	//         }
+
+		//	//         return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
+
+		//	// So...we need to detect invalid unicode here...so we can handle it here (replacement char). Whoever calls us just silently skip invalid unicode chars if we say -1 (all allowed).
+		//	// This means...we need to do just as much work here as in the encoding itself!! SO...then just always do the encoding?
+		//	// It make sense, for performance (simd) to do it here, but since we just use a simple loop here anyways, it wont matter much.
+		//	// We could have allowed 0 - FFFF thou...
+
+		//	//	return 0; works, but slower?
+
+		//	for (int index = 0; index < textLength; ++index)
+		//	{
+		//		char value = text[index];
+
+		//		// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
+		//		if (MustBeEscaped(value) || char.IsSurrogate(value))
+		//		{
+		//			return index;
+		//		}
+		//	}
+
+		//	return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
+		//}
+
 
 		public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength, out int numberOfCharactersWritten)
         {
@@ -377,7 +423,7 @@ namespace ExtremeJsonEncoders
 		private void _AssertThisNotNull()
 		{
 			// Used for hoisting "'this' is not null" assertions outside hot loops.
-			if (GetType() == typeof(OptimizedInboxTextEncoder)) { /* intentionally left blank */ }
+			if (GetType() == typeof(MinimalJsonEncoder)) { /* intentionally left blank */ }
 		}
 	}
 }

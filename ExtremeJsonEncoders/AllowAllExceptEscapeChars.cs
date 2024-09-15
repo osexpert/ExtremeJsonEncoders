@@ -7,7 +7,6 @@ namespace ExtremeJsonEncoders
 {
 	internal struct AllowAllExceptEscapeChars : IAllowedBmpCodePointsBitmap
 	{
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public readonly bool IsCharAllowed(char value)
 		{
