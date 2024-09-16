@@ -17,8 +17,8 @@ namespace ExtremeJsonEncoders
     /// Default JSON escaping is biased against other languages #86805 
     /// https://github.com/dotnet/runtime/issues/86805
     /// </summary>
-    public class MaximalJsonEncoder : JavaScriptEncoder
-    {
+    public class MaximalJsonEncoder : JavaScriptEncoder, IMustEscapeChar
+	{
         public static readonly MaximalJsonEncoder Shared = new();
 
 		private readonly AsciiPreescapedData _asciiPreescapedData;
@@ -30,7 +30,7 @@ namespace ExtremeJsonEncoders
 		public MaximalJsonEncoder(bool lowerCaseHex = true)
 		{
 			_lowerCaseHex = lowerCaseHex;
-			_asciiPreescapedData.PopulatePreescapedData(new AllowNone(), _scalarEscaper, lowerCaseHex);
+			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
 		}
 
 		/*
@@ -292,6 +292,11 @@ namespace ExtremeJsonEncoders
 
             return 0;
         }
+
+		public bool MustEscapeChar(char c)
+		{
+			return true;
+		}
 
 		public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength, out int numberOfCharactersWritten)
 		{

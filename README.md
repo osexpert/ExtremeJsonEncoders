@@ -14,7 +14,7 @@ Console.WriteLine(JsonSerializer.Serialize("\r\n\t\\abcæøå𠮟る𐐷\"", new
 ```
 
 Performance (since 0.0.3):
-When there is a lot of ascci and little need to escape, MinimalJsonEncoder is comparable to UnsafeRelaxedJsonEscaping.
+When there is a lot of ascii and little need to escape, MinimalJsonEncoder is comparable to UnsafeRelaxedJsonEscaping.
 When a lot of non-ascii, MinimalJsonEncoder can use 1/2 the time of UnsafeRelaxedJsonEscaping and 1/3 of the time of default encoder.
 
 References:

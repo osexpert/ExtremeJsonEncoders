@@ -5,8 +5,8 @@ using System.Text;
 
 namespace ExtremeJsonEncoders
 {
-	internal interface IAllowedBmpCodePointsBitmap
+	internal interface IMustEscapeChar
 	{
-		bool IsCharAllowed(char c);
+		bool MustEscapeChar(char c);
 	}
 }

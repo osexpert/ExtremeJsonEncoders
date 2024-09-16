@@ -17,8 +17,8 @@ namespace ExtremeJsonEncoders
     /// UnsafeRelaxedJsonEscaping escapes too much #86463 
     /// https://github.com/dotnet/runtime/issues/86463
     /// </summary>
-    public class MinimalJsonEncoder : JavaScriptEncoder
-    {
+    public class MinimalJsonEncoder : JavaScriptEncoder, IMustEscapeChar
+	{
 		public override int MaxOutputCharactersPerInputCharacter => 6;
 
 		private readonly AsciiPreescapedData _asciiPreescapedData;
@@ -28,10 +28,18 @@ namespace ExtremeJsonEncoders
 
 		bool _lowerCaseHex;
 
+//		char[]? _extraEscapeChars;
+
+		//public MinimalJsonEncoder(bool shortEscapes = true, bool lowerCaseHex = true, char[]? extraEscapeChars = default)
 		public MinimalJsonEncoder(bool lowerCaseHex = true)
 		{
 			_lowerCaseHex = lowerCaseHex;
-			_asciiPreescapedData.PopulatePreescapedData(new AllowAllExceptEscapeChars(), _scalarEscaper, lowerCaseHex);
+			//_extraEscapeChars = extraEscapeChars;
+			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
+
+//#if NET8_0_OR_GREATER
+//			_sv_ascii_ok_subset = SearchValues.Create(GetSearchValuesAllowedAsciiSubset());
+//#endif
 		}
 
 		public override OperationStatus Encode(ReadOnlySpan<char> source, Span<char> destination, out int charsConsumed, out int charsWritten, bool isFinalBlock = true)
@@ -297,7 +305,7 @@ namespace ExtremeJsonEncoders
 			return sb.ToString();
 		}
 
-		static string GetSearchValuesAllowedAsciiSubset()
+		string GetSearchValuesAllowedAsciiSubset()
 		{
 			StringBuilder sb = new();
 
@@ -305,12 +313,13 @@ namespace ExtremeJsonEncoders
 			// 0x7f is DEL? include it?
 			for (int i = 0x20; i < 0x7f; i++)
 			{
-				if (i == '"' || i == '\\')
+				var c = (char)i;
+				if (MustEscapeChar(c))// i == '"' || i == '\\')
 				{
 				}
 				else
 				{
-					sb.Append((char)i);
+					sb.Append(c);
 				}
 			}
 
@@ -340,7 +349,7 @@ namespace ExtremeJsonEncoders
 					char value = text[index];
 
 					// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
-					if (MustBeEscaped(value) || char.IsSurrogate(value))
+					if (MustEscapeChar(value) || char.IsSurrogate(value))
 					{
 						return index;
 					}
@@ -409,21 +418,37 @@ namespace ExtremeJsonEncoders
 				return false;
 			}
 
-			return MustBeEscaped((char)unicodeScalar);
+			return MustEscapeChar((char)unicodeScalar);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		static bool MustBeEscaped(char value)
-        {
-			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
-			return value == '"' || value == '\\' || value <= '\u001f';
-        }
+		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		//static bool MustBeEscaped(char value)
+  //      {
+		//	// https://datatracker.ietf.org/doc/html/rfc8259#section-7
+		//	return value == '"' || value == '\\' || value <= '\u001f';
+  //      }
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void _AssertThisNotNull()
 		{
 			// Used for hoisting "'this' is not null" assertions outside hot loops.
 			if (GetType() == typeof(MinimalJsonEncoder)) { /* intentionally left blank */ }
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool MustEscapeChar(char c)
+		{
+			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
+			var res = c == '"' || c == '\\' || c <= '\u001f';
+			if (res)
+				return true;
+
+			//if (_extraEscapeChars != null)
+			//	for (int i = 0; i < _extraEscapeChars.Length; i++)
+			//		if (c == _extraEscapeChars[i])
+			//			return true;
+
+			return false;
 		}
 	}
 }

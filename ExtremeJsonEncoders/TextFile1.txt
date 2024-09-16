@@ -4,3 +4,10 @@ https://github.com/dotnet/runtime/blob/ccdcf90c483dd0724878eb555fad2a19a71935f8/
 
 [API Proposal]: JsonEncoder (rather than JavaScriptEncoder)
 https://github.com/dotnet/runtime/issues/86810
+
+Characters from U+D800 to U+DBFF – lead surrogate aka first code unit aka high surrogate
+Characters from U+DC00 to U+DFFF – tail surrogate aka second code unit aka low surrogate
+
+// forceHexEscapes: escape even \r, \n etc. as hex (eg. \u000d, \u000a)
+// lowerCaseHex: \u000a (lower) vs \u000A (upper)
+ctor(bool forceHexEscapes = false, bool lowerCaseHex = true, byte[]? extraEscapeChars)

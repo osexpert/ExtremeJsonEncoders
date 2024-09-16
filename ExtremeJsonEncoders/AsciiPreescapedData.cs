@@ -21,7 +21,7 @@ namespace ExtremeJsonEncoders
 	{
 		private fixed ulong Data[128];
 
-		internal void PopulatePreescapedData(in IAllowedBmpCodePointsBitmap allowedCodePointsBmp, ScalarEscaperBase innerEncoder, bool lowerCaseHex)
+		internal void PopulatePreescapedData(in IMustEscapeChar allowedCodePointsBmp, ScalarEscaperBase innerEncoder, bool lowerCaseHex)
 		{
 			this = default; // clear all existing data
 
@@ -36,7 +36,7 @@ namespace ExtremeJsonEncoders
 										 // The IsControl incorrectly (in out case) escapes eg. DEL / 0x7f. Take full control and only use IsCharAllowed.
 										 // PS: this is only a theroretical problem that would only happen if FindFirstCharacterToEncode returned 0 on a DEL / 0x7f,
 										 // but even so: right should be right
-				if (allowedCodePointsBmp.IsCharAllowed((char)i))
+				if (!allowedCodePointsBmp.MustEscapeChar((char)i))
 				{
 					thisPreescapedData = (uint)i; // char maps to itself
 					encodedCharCount = 1;
