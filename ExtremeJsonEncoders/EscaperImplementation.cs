@@ -7,10 +7,10 @@ namespace ExtremeJsonEncoders
 {
 	sealed class EscaperImplementation : ScalarEscaperBase
 	{
-		internal static readonly EscaperImplementation SingletonMinimallyEscaped = new EscaperImplementation(true, true);
+		internal static readonly EscaperImplementation SingletonPreescape = new EscaperImplementation(true, true);
 
 		// do not add 2 char escapes
-		internal static readonly EscaperImplementation SingletonMaximallyEscaped = new EscaperImplementation(false, false);
+		internal static readonly EscaperImplementation SingletonNoPreescape = new EscaperImplementation(false, false);
 
 		// Map stores the second byte for any ASCII input that can be escaped as the two-element sequence
 		// REVERSE SOLIDUS followed by a single character. For example, <LF> maps to the two chars "\n".

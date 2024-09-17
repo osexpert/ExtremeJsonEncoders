@@ -52,11 +52,17 @@ namespace ConsoleApp1
 			//		https://github.com/bits/UTF-8-Unicode-Test-Documents/blob/master/UTF-8_sequence_unseparated/utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt
 			//
 			//
-			//@"d:\ascii test.txt"
-			//			@"d:\UTF-8-test.txt"
+			//var file = @"d:\ascii only test.txt";
+			//var file = @"d:\UTF-8-test.txt";
 			//@"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt"
 			//@"d:\ascii test separated by non.txt"
-			var txt = File.ReadAllText(@"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt"
+
+			var file = @"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt";
+			//var file = @"d:\ascii test separated by non.txt";
+
+			Console.WriteLine("file: " + file);
+
+			var txt = File.ReadAllText(file
 				,
 				Encoding.UTF8);// d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt", Encoding.UTF8);//
 

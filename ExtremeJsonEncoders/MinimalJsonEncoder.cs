@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,35 +12,62 @@ using System.Threading.Tasks;
 
 namespace ExtremeJsonEncoders
 {
-    /// <summary>
-    /// Escape only the minimal/what the RFC require: https://datatracker.ietf.org/doc/html/rfc8259#section-7
-    /// 
-    /// UnsafeRelaxedJsonEscaping escapes too much #86463 
-    /// https://github.com/dotnet/runtime/issues/86463
-    /// </summary>
-    public class MinimalJsonEncoder : JavaScriptEncoder, IMustEscapeChar
+	/// <summary>
+	/// Escape only the minimal/what the RFC require: https://datatracker.ietf.org/doc/html/rfc8259#section-7
+	/// 
+	/// UnsafeRelaxedJsonEscaping escapes too much #86463 
+	/// https://github.com/dotnet/runtime/issues/86463
+	/// </summary>
+	public class MinimalJsonEncoder : JavaScriptEncoder, IMustEscapeChar
 	{
 		public override int MaxOutputCharactersPerInputCharacter => 6;
 
 		private readonly AsciiPreescapedData _asciiPreescapedData;
-		private readonly ScalarEscaperBase _scalarEscaper = EscaperImplementation.SingletonMinimallyEscaped;
+		private readonly ScalarEscaperBase _scalarEscaper;
 
 		public static readonly MinimalJsonEncoder Shared = new();
 
-		bool _lowerCaseHex;
+		private readonly bool _lowerCaseHex;
 
-//		char[]? _extraEscapeChars;
+		private readonly bool[] _mustEscapeAscii;
 
-		//public MinimalJsonEncoder(bool shortEscapes = true, bool lowerCaseHex = true, char[]? extraEscapeChars = default)
-		public MinimalJsonEncoder(bool lowerCaseHex = true)
+		public MinimalJsonEncoder(bool shortEscapes = true, bool lowerCaseHex = false, char[]? extraAsciiEscapeChars = default) 
 		{
-			_lowerCaseHex = lowerCaseHex;
-			//_extraEscapeChars = extraEscapeChars;
-			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
+			if (extraAsciiEscapeChars != null)
+				for (int i = 0; i < extraAsciiEscapeChars.Length; i++)
+					if (extraAsciiEscapeChars[i] > 127)
+						throw new ArgumentException($"Not ascii: {extraAsciiEscapeChars[i]} (0x{(int)extraAsciiEscapeChars[i]:X})");
 
-//#if NET8_0_OR_GREATER
-//			_sv_ascii_ok_subset = SearchValues.Create(GetSearchValuesAllowedAsciiSubset());
-//#endif
+			_lowerCaseHex = lowerCaseHex;
+
+			_mustEscapeAscii = MakeEscapeMap(extraAsciiEscapeChars);
+
+#if NET8_0_OR_GREATER
+			_sv_allowed_ascii = SearchValues.Create(GetAllowedAscii());
+#endif
+
+			_scalarEscaper = shortEscapes ? EscaperImplementation.SingletonPreescape : EscaperImplementation.SingletonNoPreescape;
+
+			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
+		}
+
+		private bool[] MakeEscapeMap(char[]? _extraAsciiEscapeChars)
+		{
+			bool[] res = new bool[128];
+
+			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
+			res['"'] = true;
+			res['\\'] = true;
+
+			// control chars
+			for (int i = 0; i < 0x20; i++)
+				res[i] = true;
+
+			if (_extraAsciiEscapeChars != null)
+				for (int i = 0; i < _extraAsciiEscapeChars.Length; i++)
+					res[_extraAsciiEscapeChars[i]] = true;
+
+			return res;
 		}
 
 		public override OperationStatus Encode(ReadOnlySpan<char> source, Span<char> destination, out int charsConsumed, out int charsWritten, bool isFinalBlock = true)
@@ -283,44 +311,36 @@ namespace ExtremeJsonEncoders
 
 
 #if NET8_0_OR_GREATER
-		//static SearchValues<char> _sv_need_encoding = SearchValues.Create(GetSearchValues());
-		static SearchValues<char> _sv_ascii_ok_subset = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~");
-		//GetSearchValuesAllowedAsciiSubset());
+//		static readonly SearchValues<char> _sv_ascii_ok_subset = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		SearchValues<char> _sv_allowed_ascii = null!;
 
-		static string GetSearchValuesDisallowed()
+		//static string GetSearchValuesDisallowed()
+		//{
+		//	StringBuilder sb = new();
+
+		//	// control chars
+		//	for (int i = 0; i <= 0x1f; i++)
+		//		sb.Append((char)i);
+
+		//	sb.Append('"');
+		//	sb.Append('\\');
+
+		//	//	Surrogates: d800-dfff
+		//	for (int i = 0xd800; i <= 0xdfff; i++)
+		//		sb.Append((char)i);
+
+		//	return sb.ToString();
+		//}
+
+		string GetAllowedAscii()
 		{
 			StringBuilder sb = new();
 
-			// control chars
-			for (int i = 0; i <= 0x1f; i++)
-				sb.Append((char)i);
-
-			sb.Append('"');
-			sb.Append('\\');
-
-			//	Surrogates: d800-dfff
-			for (int i = 0xd800; i <= 0xdfff; i++)
-				sb.Append((char)i);
-
-			return sb.ToString();
-		}
-
-		string GetSearchValuesAllowedAsciiSubset()
-		{
-			StringBuilder sb = new();
-
-			// 0x20 is above control chars
-			// 0x7f is DEL? include it?
-			for (int i = 0x20; i < 0x7f; i++)
+			for (int i = 0; i < 128; i++)
 			{
 				var c = (char)i;
-				if (MustEscapeChar(c))// i == '"' || i == '\\')
-				{
-				}
-				else
-				{
+				if (!MustEscapeChar(c))
 					sb.Append(c);
-				}
 			}
 
 			return sb.ToString();
@@ -336,64 +356,31 @@ namespace ExtremeJsonEncoders
 			// this is not all that are ok (far from), but the most common that are ok.
 			// so if we are lucky, we can skip a lot of valid ascii that we don't need to encode, and we skip it faster with SearchValues
 			var sp = new Span<char>(text, textLength);
-			var i = sp.IndexOfAnyExcept(_sv_ascii_ok_subset);
-#else
-			var i = 0;
-#endif
 
-			if (i >= 0)
+			// for a file that contain just non-ascii that does not need escaping, this will/can be an inefficient for-loop....?
+			while (sp.Length > 0)
 			{
-				// continue with slower logic
-				for (int index = i; index < textLength; ++index)
-				{
-					char value = text[index];
+				var i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
+				if (i == -1)
+					return -1;
 
-					// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
-					if (MustEscapeChar(value) || char.IsSurrogate(value))
-					{
-						return index;
-					}
-				}
+				char value = sp[i];
+				if (char.IsSurrogate(value) || MustEscapeChar(value))
+					return i;
+
+				sp = sp.Slice(i + 1);
 			}
+#else
+			for (int index = 0; index < textLength; ++index)
+			{
+				char value = text[index];
+				if (char.IsSurrogate(value) || MustEscapeChar(value))
+					return index;
+			}
+#endif
 
 			return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
 		}
-
-		//public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
-  //      {
-		//	//for (int index = 0; index < textLength; ++index)
-		//	//         {
-		//	//             char value = text[index];
-
-		//	//             if (MustBeEscaped(value))
-		//	//             {
-		//	//                 return index;
-		//	//             }
-		//	//         }
-
-		//	//         return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
-
-		//	// So...we need to detect invalid unicode here...so we can handle it here (replacement char). Whoever calls us just silently skip invalid unicode chars if we say -1 (all allowed).
-		//	// This means...we need to do just as much work here as in the encoding itself!! SO...then just always do the encoding?
-		//	// It make sense, for performance (simd) to do it here, but since we just use a simple loop here anyways, it wont matter much.
-		//	// We could have allowed 0 - FFFF thou...
-
-		//	//	return 0; works, but slower?
-
-		//	for (int index = 0; index < textLength; ++index)
-		//	{
-		//		char value = text[index];
-
-		//		// TODO: what is completely invalid? Seems char.IsSurrogate catches them all... 
-		//		if (MustBeEscaped(value) || char.IsSurrogate(value))
-		//		{
-		//			return index;
-		//		}
-		//	}
-
-		//	return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
-		//}
-
 
 		public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength, out int numberOfCharactersWritten)
         {
@@ -421,13 +408,6 @@ namespace ExtremeJsonEncoders
 			return MustEscapeChar((char)unicodeScalar);
 		}
 
-		//[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		//static bool MustBeEscaped(char value)
-  //      {
-		//	// https://datatracker.ietf.org/doc/html/rfc8259#section-7
-		//	return value == '"' || value == '\\' || value <= '\u001f';
-  //      }
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private void _AssertThisNotNull()
 		{
@@ -438,17 +418,7 @@ namespace ExtremeJsonEncoders
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool MustEscapeChar(char c)
 		{
-			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
-			var res = c == '"' || c == '\\' || c <= '\u001f';
-			if (res)
-				return true;
-
-			//if (_extraEscapeChars != null)
-			//	for (int i = 0; i < _extraEscapeChars.Length; i++)
-			//		if (c == _extraEscapeChars[i])
-			//			return true;
-
-			return false;
+			return c < 128 && _mustEscapeAscii[c];
 		}
 	}
 }

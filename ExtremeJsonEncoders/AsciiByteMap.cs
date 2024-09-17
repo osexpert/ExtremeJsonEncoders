@@ -8,6 +8,37 @@ using System.Text;
 //namespace System.Text.Encodings.Web
 namespace ExtremeJsonEncoders
 {
+	//internal unsafe struct AsciiBoolMap
+	//{
+	//	private const int BufferSize = 128;
+	//	internal fixed bool Buffer[BufferSize];
+
+	//	internal void MakeEscapeMap(char[]? extraAsciiEscapeChars)
+	//	{
+	//		Buffer['"'] = true;
+	//		Buffer['\\'] = true;
+
+	//		// control chars
+	//		for (int i = 0; i < 0x20; i++)
+	//			Buffer[i] = true;
+
+	//		if (extraAsciiEscapeChars != null)
+	//			for (int i = 0; i < extraAsciiEscapeChars.Length; i++)
+	//				Buffer[extraAsciiEscapeChars[i]] = true;
+		
+	//	}
+
+	//	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	//	internal bool MustEscape(char c)
+	//	{
+	//		if (c > 127)
+	//			return false;
+
+	//		return Buffer[c];
+	//	}
+	//}
+
+
 	/// <summary>
 	/// A lookup map that maps individual ASCII chars to a single byte.
 	/// Storing a 0 byte indicates that no mapping exists for this input.
