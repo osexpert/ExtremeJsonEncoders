@@ -420,6 +420,16 @@ namespace ExtremeJsonEncoders.Tests
 			Assert.AreEqual(s, back4);
 		}
 
+		[TestMethod]
+		public void MaxWithShortEsc()
+		{
+			const string s = "a\r\n";
+			string json4 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = new MaximalJsonEncoder(shortEscapes: true) });
+			Assert.AreEqual("\"\\u0061\\r\\n\"", json4);
+			var back4 = JsonSerializer.Deserialize<string>(json4);
+			Assert.AreEqual(s, back4);
+		}
+
 	}
 }
 

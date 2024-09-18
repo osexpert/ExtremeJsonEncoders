@@ -23,13 +23,14 @@ namespace ExtremeJsonEncoders
 
 		private readonly AsciiPreescapedData _asciiPreescapedData;
 
-		private readonly ScalarEscaperBase _scalarEscaper = EscaperImplementation.SingletonNoPreescape;
+		private readonly ScalarEscaperBase _scalarEscaper;
 
-		bool _lowerCaseHex;
+		private readonly bool _lowerCaseHex;
 
-		public MaximalJsonEncoder(bool lowerCaseHex = false)
+		public MaximalJsonEncoder(bool shortEscapes = false, bool lowerCaseHex = false)
 		{
 			_lowerCaseHex = lowerCaseHex;
+			_scalarEscaper = shortEscapes ? EscaperImplementation.SingletonPreescape : EscaperImplementation.SingletonNoPreescape;
 			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
 		}
 

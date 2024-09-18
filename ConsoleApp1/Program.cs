@@ -54,10 +54,11 @@ namespace ConsoleApp1
 			//
 			//var file = @"d:\ascii only test.txt";
 			//var file = @"d:\UTF-8-test.txt";
+			var file = @"d:\only ø.txt";
 			//@"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt"
 			//@"d:\ascii test separated by non.txt"
 
-			var file = @"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt";
+			//var file = @"d:\utf8_sequence_0-0x2ffff_including-unassigned_including-unprintable-replaced_unseparated.txt";
 			//var file = @"d:\ascii test separated by non.txt";
 
 			Console.WriteLine("file: " + file);

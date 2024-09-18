@@ -28,7 +28,6 @@ namespace ExtremeJsonEncoders
 		public static readonly MinimalJsonEncoder Shared = new();
 
 		private readonly bool _lowerCaseHex;
-
 		private readonly bool[] _mustEscapeAscii;
 
 		public MinimalJsonEncoder(bool shortEscapes = true, bool lowerCaseHex = false, char[]? extraAsciiEscapeChars = default) 
@@ -39,35 +38,14 @@ namespace ExtremeJsonEncoders
 						throw new ArgumentException($"Not ascii: {extraAsciiEscapeChars[i]} (0x{(int)extraAsciiEscapeChars[i]:X})");
 
 			_lowerCaseHex = lowerCaseHex;
-
-			_mustEscapeAscii = MakeEscapeMap(extraAsciiEscapeChars);
+			_mustEscapeAscii = CreateEscapeMap(extraAsciiEscapeChars);
 
 #if NET8_0_OR_GREATER
 			_sv_allowed_ascii = SearchValues.Create(GetAllowedAscii());
 #endif
 
 			_scalarEscaper = shortEscapes ? EscaperImplementation.SingletonPreescape : EscaperImplementation.SingletonNoPreescape;
-
 			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
-		}
-
-		private bool[] MakeEscapeMap(char[]? _extraAsciiEscapeChars)
-		{
-			bool[] res = new bool[128];
-
-			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
-			res['"'] = true;
-			res['\\'] = true;
-
-			// control chars
-			for (int i = 0; i < 0x20; i++)
-				res[i] = true;
-
-			if (_extraAsciiEscapeChars != null)
-				for (int i = 0; i < _extraAsciiEscapeChars.Length; i++)
-					res[_extraAsciiEscapeChars[i]] = true;
-
-			return res;
 		}
 
 		public override OperationStatus Encode(ReadOnlySpan<char> source, Span<char> destination, out int charsConsumed, out int charsWritten, bool isFinalBlock = true)
@@ -352,26 +330,27 @@ namespace ExtremeJsonEncoders
 			// To test the encoder fully, return 0 here to force encoding everything.
 			//return 0;
 
+			int i = 0;
+
 #if NET8_0_OR_GREATER
-			// this is not all that are ok (far from), but the most common that are ok.
-			// so if we are lucky, we can skip a lot of valid ascii that we don't need to encode, and we skip it faster with SearchValues
+			// if we are lucky, we can skip a lot of valid ascii that don't need encoding, and we skip it faster with SearchValues
 			var sp = new Span<char>(text, textLength);
 
-			// for a file that contain just non-ascii that does not need escaping, this will/can be an inefficient for-loop....?
-			while (sp.Length > 0)
+			// for a file that contain just non-ascii that does not need escaping, this will/can be an inefficient for-loop....? Yes! It did (only ø.txt). 50% slower. So removed the loop.
+			//			while (sp.Length > 0)
 			{
-				var i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
+				i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
 				if (i == -1)
 					return -1;
 
-				char value = sp[i];
-				if (char.IsSurrogate(value) || MustEscapeChar(value))
-					return i;
+				//char value = sp[i];
+				//if (char.IsSurrogate(value) || MustEscapeChar(value))
+				//	return i;
 
-				sp = sp.Slice(i + 1);
+				//sp = sp.Slice(i + 1);
 			}
 #else
-			for (int index = 0; index < textLength; ++index)
+			for (int index = i; index < textLength; ++index)
 			{
 				char value = text[index];
 				if (char.IsSurrogate(value) || MustEscapeChar(value))
@@ -419,6 +398,25 @@ namespace ExtremeJsonEncoders
 		public bool MustEscapeChar(char c)
 		{
 			return c < 128 && _mustEscapeAscii[c];
+		}
+
+		private bool[] CreateEscapeMap(char[]? _extraAsciiEscapeChars)
+		{
+			bool[] res = new bool[128];
+
+			// https://datatracker.ietf.org/doc/html/rfc8259#section-7
+			res['"'] = true;
+			res['\\'] = true;
+
+			// control chars
+			for (int i = 0; i < 0x20; i++)
+				res[i] = true;
+
+			if (_extraAsciiEscapeChars != null)
+				for (int i = 0; i < _extraAsciiEscapeChars.Length; i++)
+					res[_extraAsciiEscapeChars[i]] = true;
+
+			return res;
 		}
 	}
 }
