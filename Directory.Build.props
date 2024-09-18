@@ -21,7 +21,7 @@
     <Company>osexpert</Company>      
     <PackageReleaseNotes>See https://github.com/osexpert/ExtremeJsonEncoders/blob/master/CHANGELOG.md for details</PackageReleaseNotes>
     
-    <VersionPrefix>0.0.3</VersionPrefix>
+    <VersionPrefix>0.0.4</VersionPrefix>
 <!--     <PackageTags>Syatem.Text.Json </PackageTags> -->
     <Description>For System.Text.Json. A MinimalJsonEncoder, that only escape what the RFC require. Also a MaximalJsonEncoder, for fun:-)</Description>        
 		        

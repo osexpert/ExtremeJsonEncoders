@@ -349,14 +349,14 @@ namespace ExtremeJsonEncoders
 
 				//sp = sp.Slice(i + 1);
 			}
-#else
+#endif
+
 			for (int index = i; index < textLength; ++index)
 			{
 				char value = text[index];
 				if (char.IsSurrogate(value) || MustEscapeChar(value))
 					return index;
 			}
-#endif
 
 			return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
 		}
@@ -400,7 +400,7 @@ namespace ExtremeJsonEncoders
 			return c < 128 && _mustEscapeAscii[c];
 		}
 
-		private bool[] CreateEscapeMap(char[]? _extraAsciiEscapeChars)
+		private bool[] CreateEscapeMap(char[]? extraAsciiEscapeChars)
 		{
 			bool[] res = new bool[128];
 
@@ -412,9 +412,9 @@ namespace ExtremeJsonEncoders
 			for (int i = 0; i < 0x20; i++)
 				res[i] = true;
 
-			if (_extraAsciiEscapeChars != null)
-				for (int i = 0; i < _extraAsciiEscapeChars.Length; i++)
-					res[_extraAsciiEscapeChars[i]] = true;
+			if (extraAsciiEscapeChars != null)
+				for (int i = 0; i < extraAsciiEscapeChars.Length; i++)
+					res[extraAsciiEscapeChars[i]] = true;
 
 			return res;
 		}
