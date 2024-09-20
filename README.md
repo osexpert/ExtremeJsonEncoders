@@ -20,4 +20,5 @@ When a lot of non-ascii, MinimalJsonEncoder can use 1/2 the time of UnsafeRelaxe
 References:
 * UnsafeRelaxedJsonEscaping escapes too much #86463: https://github.com/dotnet/runtime/issues/86463
 * Default JSON escaping is biased against other languages #86805: https://github.com/dotnet/runtime/issues/86805
+* [API Proposal]: UnicodeJsonEncoder: https://github.com/dotnet/runtime/issues/87153
 * RFC: https://datatracker.ietf.org/doc/html/rfc8259#section-7

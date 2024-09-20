@@ -354,6 +354,9 @@ namespace ExtremeJsonEncoders
 			for (int index = i; index < textLength; ++index)
 			{
 				char value = text[index];
+				// Encoder need to check surrogates, because if they are invalid, they will be replaced with ReplacementChar.
+				// If encoder did not need to do this, it would be much easier to use SearchValues to search for chars to escape. But there is a lot of surrogate values,
+				// so then SearchValues would end up with over 2k chars, and not particularly fast.
 				if (char.IsSurrogate(value) || MustEscapeChar(value))
 					return index;
 			}

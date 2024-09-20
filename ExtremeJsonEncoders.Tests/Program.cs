@@ -408,13 +408,13 @@ namespace ExtremeJsonEncoders.Tests
 
 		}
 
-		private static readonly char[] extraEscapeChars = new[] { '<' };
+		
 
 		[TestMethod]
 		public void MinExtraChar()
 		{
 			const string s = "abc<";
-			string json4 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = new MinimalJsonEncoder(extraAsciiEscapeChars: extraEscapeChars) });
+			string json4 = JsonSerializer.Serialize(s, new JsonSerializerOptions { Encoder = new MinimalJsonEncoder(extraAsciiEscapeChars: new[] { '<' }) });
 			Assert.AreEqual("\"abc\\u003C\"", json4);
 			var back4 = JsonSerializer.Deserialize<string>(json4);
 			Assert.AreEqual(s, back4);
@@ -429,6 +429,28 @@ namespace ExtremeJsonEncoders.Tests
 			var back4 = JsonSerializer.Deserialize<string>(json4);
 			Assert.AreEqual(s, back4);
 		}
+
+		[TestMethod]
+		public void MinHtmlScript()
+		{
+			string data = "</script>";
+			string json4 = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = new MinimalJsonEncoder(extraAsciiEscapeChars: new[] { '<' }) });
+			Assert.AreEqual("\"\\u003C/script>\"", json4);
+			var back4 = JsonSerializer.Deserialize<string>(json4);
+			Assert.AreEqual(data, back4);
+		}
+
+
+		[TestMethod]
+		public void MinEmo()
+		{
+			string data = "📲";
+			string json4 = JsonSerializer.Serialize(data, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			Assert.AreEqual("\"📲\"", json4);
+			var back4 = JsonSerializer.Deserialize<string>(json4);
+			Assert.AreEqual(data, back4);
+		}
+
 
 	}
 }
