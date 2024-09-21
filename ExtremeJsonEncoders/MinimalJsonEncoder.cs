@@ -335,33 +335,24 @@ namespace ExtremeJsonEncoders
 #if NET8_0_OR_GREATER
 			// if we are lucky, we can skip a lot of valid ascii that don't need encoding, and we skip it faster with SearchValues
 			var sp = new Span<char>(text, textLength);
-
-			// for a file that contain just non-ascii that does not need escaping, this will/can be an inefficient for-loop....? Yes! It did (only ø.txt). 50% slower. So removed the loop.
-			//			while (sp.Length > 0)
-			{
-				i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
-				if (i == -1)
-					return -1;
-
-				//char value = sp[i];
-				//if (char.IsSurrogate(value) || MustEscapeChar(value))
-				//	return i;
-
-				//sp = sp.Slice(i + 1);
-			}
+			i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
 #endif
-
-			for (int index = i; index < textLength; ++index)
+			if (i >= 0)
 			{
-				char value = text[index];
-				// Encoder need to check surrogates, because if they are invalid, they will be replaced with ReplacementChar.
-				// If encoder did not need to do this, it would be much easier to use SearchValues to search for chars to escape. But there is a lot of surrogate values,
-				// so then SearchValues would end up with over 2k chars, and not particularly fast.
-				if (char.IsSurrogate(value) || MustEscapeChar(value))
-					return index;
+				_AssertThisNotNull(); // hoist "this != null" check out of hot loop below (what the dickens does this mean???)
+
+				for (int index = i; index < textLength; ++index)
+				{
+					char value = text[index];
+					// Encoder need to check surrogates, because if they are invalid, they will be replaced with ReplacementChar.
+					// If encoder did not need to do this, it would be much easier to use SearchValues to search for chars to escape. But there is a lot of surrogate values,
+					// so SearchValues would end up with over 2k chars (not fast)
+					if (char.IsSurrogate(value) || MustEscapeChar(value))
+						return index;
+				}
 			}
 
-			return -1; // all characters allowed (but this does not work, the char (eg. hi or low surrigate alone) is completely ingored in this case...)
+			return -1; // all characters allowed (nothing to encode)
 		}
 
 		public override unsafe bool TryEncodeUnicodeScalar(int unicodeScalar, char* buffer, int bufferLength, out int numberOfCharactersWritten)
@@ -403,7 +394,7 @@ namespace ExtremeJsonEncoders
 			return c < 128 && _mustEscapeAscii[c];
 		}
 
-		private bool[] CreateEscapeMap(char[]? extraAsciiEscapeChars)
+		private static bool[] CreateEscapeMap(char[]? extraAsciiEscapeChars)
 		{
 			bool[] res = new bool[128];
 

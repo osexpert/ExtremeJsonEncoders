@@ -89,15 +89,15 @@ namespace ConsoleApp1
 			s.Stop();
 			Console.WriteLine("min " + s.ElapsedMilliseconds);
 
-			s.Restart();
-			for (int i = 0; i < 1000; i++)
-			{
-				var serr = JsonSerializer.Serialize(txt);
-				if (JsonSerializer.Deserialize<string>(serr) != txt)
-					throw new Exception();
-			}
-			s.Stop();
-			Console.WriteLine("std " + s.ElapsedMilliseconds);
+			//s.Restart();
+			//for (int i = 0; i < 1000; i++)
+			//{
+			//	var serr = JsonSerializer.Serialize(txt);
+			//	if (JsonSerializer.Deserialize<string>(serr) != txt)
+			//		throw new Exception();
+			//}
+			//s.Stop();
+			//Console.WriteLine("std " + s.ElapsedMilliseconds);
 
 			s.Restart();
 			for (int i = 0; i < 1000; i++)
