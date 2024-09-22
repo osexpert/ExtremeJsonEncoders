@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net48;net6.0;net8.0</TargetFrameworks>
     <Nullable>enable</Nullable>
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>latest</LangVersion>
 	  <NoWarn>1591</NoWarn>
 	  
     <IsPackable>false</IsPackable>

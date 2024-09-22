@@ -41,12 +41,15 @@ namespace ExtremeJsonEncoders
 			_mustEscapeAscii = CreateEscapeMap(extraAsciiEscapeChars);
 
 #if NET8_0_OR_GREATER
-			_sv_allowed_ascii = SearchValues.Create(GetAllowedAscii());
+			_sv_allowed_ascii = new Lazy<SearchValues<char>>(GetAllowedAsciiSv);
+			_sv_allowed_ascii_u8 = new Lazy<SearchValues<byte>>(GetAllowedAsciiSvU8);
 #endif
 
 			_scalarEscaper = shortEscapes ? EscaperImplementation.SingletonPreescape : EscaperImplementation.SingletonNoPreescape;
 			_asciiPreescapedData.PopulatePreescapedData(this, _scalarEscaper, lowerCaseHex);
 		}
+
+
 
 		public override OperationStatus Encode(ReadOnlySpan<char> source, Span<char> destination, out int charsConsumed, out int charsWritten, bool isFinalBlock = true)
 		{
@@ -289,8 +292,15 @@ namespace ExtremeJsonEncoders
 
 
 #if NET8_0_OR_GREATER
-//		static readonly SearchValues<char> _sv_ascii_ok_subset = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~");
-		SearchValues<char> _sv_allowed_ascii = null!;
+		private SearchValues<byte> GetAllowedAsciiSvU8() 
+			=> SearchValues.Create(GetAllowedAscii().Select(c => (byte)c).ToArray());
+
+		private SearchValues<char> GetAllowedAsciiSv()
+			=> SearchValues.Create(GetAllowedAscii());
+
+		//		static readonly SearchValues<char> _sv_ascii_ok_subset = SearchValues.Create(" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~");
+		Lazy<SearchValues<char>> _sv_allowed_ascii = null!;
+		Lazy<SearchValues<byte>> _sv_allowed_ascii_u8 = null!;
 
 		//static string GetSearchValuesDisallowed()
 		//{
@@ -325,6 +335,44 @@ namespace ExtremeJsonEncoders
 		}
 #endif
 
+
+		public override int FindFirstCharacterToEncodeUtf8(ReadOnlySpan<byte> data)
+		{
+			// To test the encoder fully, return 0 here to force encoding everything.
+			//return 0;
+
+			int dataOriginalLength = data.Length;
+
+#if NET8_0_OR_GREATER
+			// if we are lucky, we can skip a lot of valid ascii that don't need encoding, and we skip it faster with SearchValues
+			int i = data.IndexOfAnyExcept(_sv_allowed_ascii_u8.Value);
+			if (i == -1)
+				return -1; // all data was allowed ascii
+
+			// OPT: if the first disallowed char is ascii, we can return immediately (we know it is a char that needs escaping)
+			if (UnicodeUtility.IsAsciiCodePoint(data[i]))
+				return i;
+
+			data = data.Slice(i);
+			Debug.Assert(!data.IsEmpty);
+
+#endif
+			// If there's any leftover data, try consuming it now.
+			while (!data.IsEmpty)
+			{
+				OperationStatus opStatus = Rune.DecodeFromUtf8(data, out Rune scalarValue, out int bytesConsumed);
+				if (opStatus != OperationStatus.Done) { break; } // bad data found, must escape
+																 //if (bytesConsumed >= 4) { break; } // found supplementary code point, must escape
+
+				//UnicodeDebug.AssertIsBmpCodePoint((uint)scalarValue.Value);
+				//if (!_allowedBmpCodePoints.IsCharAllowed((char)scalarValue.Value)) { break; } // disallowed code point
+				if (MustEscapeChar((char)scalarValue.Value)) { break; } // disallowed code point
+				data = data.Slice(bytesConsumed);
+			}
+
+			return (data.IsEmpty) ? -1 : dataOriginalLength - data.Length;
+		}
+
 		public override unsafe int FindFirstCharacterToEncode(char* text, int textLength)
         {
 			// To test the encoder fully, return 0 here to force encoding everything.
@@ -334,8 +382,14 @@ namespace ExtremeJsonEncoders
 
 #if NET8_0_OR_GREATER
 			// if we are lucky, we can skip a lot of valid ascii that don't need encoding, and we skip it faster with SearchValues
-			var sp = new Span<char>(text, textLength);
-			i = sp.IndexOfAnyExcept(_sv_allowed_ascii);
+			var data = new ReadOnlySpan<char>(text, textLength);
+			i = data.IndexOfAnyExcept(_sv_allowed_ascii.Value);
+			if (i == -1)
+				return -1; // all data was allowed ascii
+
+			// OPT: if the first disallowed char is ascii, we can return immediately (we know it is a char that needs escaping)
+			if (UnicodeUtility.IsAsciiCodePoint(text[i]))
+				return i;
 #endif
 			if (i >= 0)
 			{
@@ -344,11 +398,23 @@ namespace ExtremeJsonEncoders
 				for (int index = i; index < textLength; ++index)
 				{
 					char value = text[index];
-					// Encoder need to check surrogates, because if they are invalid, they will be replaced with ReplacementChar.
-					// If encoder did not need to do this, it would be much easier to use SearchValues to search for chars to escape. But there is a lot of surrogate values,
-					// so SearchValues would end up with over 2k chars (not fast)
-					if (char.IsSurrogate(value) || MustEscapeChar(value))
+					if (MustEscapeChar(value))
 						return index;
+
+					if (char.IsSurrogate(value))
+					{
+						// do we have one more char?
+						if (index + 1 < textLength && char.IsSurrogatePair(value, text[index + 1]))
+						{
+							// ok, skip next char (low surrogate)
+							++index;
+						}
+						else
+						{
+							// no more chars (possibly unmatched surrogate) or invalid surrogate. encoder must handle it.
+							return index;
+						}
+					}
 				}
 			}
 
