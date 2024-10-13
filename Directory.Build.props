@@ -19,7 +19,7 @@
     <PackageReleaseNotes></PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>osexpert</Company>      
-    <PackageReleaseNotes>See https://github.com/osexpert/ExtremeJsonEncoders/blob/master/CHANGELOG.md for details</PackageReleaseNotes>
+    <PackageReleaseNotes>See https://github.com/osexpert/ExtremeJsonEncoders/blob/main/CHANGELOG.md for details</PackageReleaseNotes>
     
     <VersionPrefix>0.0.5</VersionPrefix>
 <!--     <PackageTags>Syatem.Text.Json </PackageTags> -->

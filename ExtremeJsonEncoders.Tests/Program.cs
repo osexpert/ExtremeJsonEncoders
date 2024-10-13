@@ -452,6 +452,24 @@ namespace ExtremeJsonEncoders.Tests
 		}
 
 
+		[TestMethod]
+		public void PropNames()
+		{
+			var o = new { abcるdef〱æøå = "abcるdef〱æøå" };
+			string json = JsonSerializer.Serialize(o, new JsonSerializerOptions());
+			Assert.AreEqual("{\"abc\\u308Bdef\\u3031\\u00E6\\u00F8\\u00E5\":\"abc\\u308Bdef\\u3031\\u00E6\\u00F8\\u00E5\"}", json);
+
+			string json2 = JsonSerializer.Serialize(o, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+			Assert.AreEqual("{\"abcるdef〱æøå\":\"abcるdef〱æøå\"}", json2);
+
+			string json3 = JsonSerializer.Serialize(o, new JsonSerializerOptions { Encoder = MaximalJsonEncoder.Shared });
+			Assert.AreEqual("{\"\\u0061\\u0062\\u0063\\u308B\\u0064\\u0065\\u0066\\u3031\\u00E6\\u00F8\\u00E5\":\"\\u0061\\u0062\\u0063\\u308B\\u0064\\u0065\\u0066\\u3031\\u00E6\\u00F8\\u00E5\"}", json3);
+
+			string json4 = JsonSerializer.Serialize(o, new JsonSerializerOptions { Encoder = MinimalJsonEncoder.Shared });
+			Assert.AreEqual("{\"abcるdef〱æøå\":\"abcるdef〱æøå\"}", json4); // same as relaxed
+
+		}
+
 	}
 }
 
